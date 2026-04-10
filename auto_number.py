@@ -111,46 +111,47 @@ def find_and_ocr_number() -> str:
 
 # ── 메인 실행 ────────────────────────────────────────────
 
-def run_auto_input():
-    print("[F9] 초대 코드 탐색 중...")
+_running = False
 
-    number = find_and_ocr_number()
-    if not number:
-        print("[실패] 초대 코드를 화면에서 찾지 못했습니다.\n")
-        return
+def run_auto_loop():
+    global _running
+    _running = True
+    print("[F9] 자동 대기 시작... (F9 다시 누르면 중지)\n")
 
-    print(f"[인식된 숫자] {number}")
-    pyperclip.copy(number)
+    while _running:
+        number = find_and_ocr_number()
+        if not number:
+            time.sleep(1)
+            continue
 
-    screenshot = ImageGrab.grab()
-    screen_np   = np.array(screenshot)
-    screen_gray = cv2.cvtColor(screen_np, cv2.COLOR_RGB2GRAY)
+        print(f"[인식된 숫자] {number}")
+        pyperclip.copy(number)
 
-    # 입력창 찾기
-    print("  입력창 탐색 중...")
-    inp = find_on_screen(TEMPLATE_INPUT, screen_gray)
-    if not inp:
-        print("[실패] 입력창을 찾지 못했습니다.\n")
-        return
+        screenshot = ImageGrab.grab()
+        screen_gray = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2GRAY)
 
-    cx, cy = inp[0] + inp[2] // 2, inp[1] + inp[3] // 2
-    pyautogui.click(cx, cy)
-    time.sleep(0.3)
-    pyautogui.hotkey("ctrl", "v")
-    time.sleep(0.2)
-    pyautogui.press("enter")
-    time.sleep(0.3)
+        inp = find_on_screen(TEMPLATE_INPUT, screen_gray)
+        if not inp:
+            time.sleep(1)
+            continue
 
-    # 참가 버튼 클릭
-    print("  참가 버튼 탐색 중...")
-    screen_gray2 = cv2.cvtColor(np.array(ImageGrab.grab()), cv2.COLOR_RGB2GRAY)
-    jn = find_on_screen(TEMPLATE_JOIN, screen_gray2)
-    if jn:
-        pyautogui.click(jn[0] + jn[2] // 2, jn[1] + jn[3] // 2)
-    else:
-        print("  [실패] 참가 버튼을 찾지 못했습니다.")
+        cx, cy = inp[0] + inp[2] // 2, inp[1] + inp[3] // 2
+        pyautogui.click(cx, cy)
+        time.sleep(0.3)
+        pyautogui.hotkey("ctrl", "v")
+        time.sleep(0.2)
+        pyautogui.press("enter")
+        time.sleep(0.3)
 
-    print(f"[완료] '{number}' 입력 완료!\n")
+        screen_gray2 = cv2.cvtColor(np.array(ImageGrab.grab()), cv2.COLOR_RGB2GRAY)
+        jn = find_on_screen(TEMPLATE_JOIN, screen_gray2)
+        if jn:
+            pyautogui.click(jn[0] + jn[2] // 2, jn[1] + jn[3] // 2)
+
+        print(f"[완료] '{number}' 입력 완료!\n")
+        time.sleep(1)
+
+    print("[중지] 자동 대기 종료\n")
 
 
 def test_number_ocr():
@@ -198,7 +199,11 @@ def on_f4():
     threading.Thread(target=test_join_button, daemon=True).start()
 
 def on_f9():
-    threading.Thread(target=run_auto_input, daemon=True).start()
+    global _running
+    if _running:
+        _running = False
+    else:
+        threading.Thread(target=run_auto_loop, daemon=True).start()
 
 
 def main():
@@ -208,7 +213,7 @@ def main():
     print("  F2  - [테스트] 숫자 인식 + 클립보드 저장")
     print("  F3  - [테스트] 입력창 탐색")
     print("  F4  - [테스트] 참가 버튼 탐색")
-    print("  F9  - 자동 인식 & 입력 실행")
+    print("  F9  - 자동 대기 시작/중지")
     print("  ESC - 종료")
     print("=" * 45 + "\n")
 
