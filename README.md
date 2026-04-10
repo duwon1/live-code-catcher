@@ -21,10 +21,8 @@ pip install -r requirements.txt
 
 1. 유튜브 라이브에서 초대 코드가 화면에 표시된 상태 만들기
 2. 마우스를 **초대 코드 숫자 위에 올리고** `F7` 누르기
-3. 박스 크기를 자동으로 감지해 `config.json`에 저장
-4. `images/number.png`에 캡처 미리보기 저장됨
-
-> 창 크기를 바꿨거나 인식이 안 될 때 F7로 재등록하면 됩니다.
+3. 박스 크기를 자동 감지해 `config.json`에 좌표 저장
+4. 창 크기 바꾸면 F7로 재등록 필요
 
 ### 2단계 — 인식 테스트 (F2)
 
@@ -53,7 +51,7 @@ python auto_number.py
 
 | 키 | 기능 |
 |----|------|
-| `F7` | 초대 코드 위치 등록 (마우스를 숫자 위에 올리고 누르기) |
+| `F7` | 초대 코드 위치 등록 (숫자 위에 마우스 올리고 누르기) |
 | `F2` | 숫자 인식 테스트 + 클립보드 저장 |
 | `F3` | 입력창 탐색 테스트 |
 | `F4` | 참가하기 버튼 탐색 테스트 |
@@ -68,9 +66,8 @@ python auto_number.py
 live-code-catcher/
 ├── auto_number.py        # 메인 프로그램
 ├── requirements.txt      # 패키지 목록
-├── config.json           # F7로 저장된 위치 (자동 생성)
+├── config.json           # F7로 저장된 좌표 (자동 생성)
 ├── images/
-│   ├── number.png        # F7 캡처 미리보기 (자동 생성)
 │   ├── input.png         # 코드 입력창 템플릿
 │   └── join.png          # 참가하기 버튼 템플릿
 └── debug/
@@ -82,8 +79,8 @@ live-code-catcher/
 ## 주의사항
 
 - 유튜브 창 크기를 바꾸면 **F7로 재등록** 필요
-- `images/input.png`, `images/join.png`는 본인 게임 UI 기준으로 교체 필요
-- 인식이 안 될 경우 `debug/raw.png`에서 실제 캡처 영역 확인
+- `images/input.png`, `images/join.png`는 본인 게임 UI에 맞게 교체 가능
+- 인식이 안 될 경우 `debug/raw.png`에서 캡처 영역 확인
 
 ---
 

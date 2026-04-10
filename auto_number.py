@@ -1,7 +1,7 @@
 """
-유튜브 시참 번호 자동 입력 프로그램
+운빨존많겜 시참 코드 자동 입력 프로그램
 
-F7  - 초대 코드 위치 저장 (마우스 올린 채로)
+F7  - 초대 코드 위치 등록 (숫자 위에 마우스 올리고 누르기)
 F2  - [테스트] 숫자 인식 + 클립보드 저장
 F3  - [테스트] 입력창 탐색
 F4  - [테스트] 참가 버튼 탐색
@@ -25,11 +25,10 @@ from PIL import Image
 
 ocr = ddddocr.DdddOcr(show_ad=False)
 
-TEMPLATE_DIR = "images"
-DEBUG_DIR    = "debug"
-CONFIG_FILE  = "config.json"
-TEMPLATE_INPUT = os.path.join(TEMPLATE_DIR, "input.png")
-TEMPLATE_JOIN  = os.path.join(TEMPLATE_DIR, "join.png")
+DEBUG_DIR      = "debug"
+CONFIG_FILE    = "config.json"
+TEMPLATE_INPUT = os.path.join("images", "input.png")
+TEMPLATE_JOIN  = os.path.join("images", "join.png")
 
 SCALES = [round(s, 2) for s in np.arange(0.5, 1.6, 0.1)]
 MATCH_THRESHOLD = 0.6
@@ -173,9 +172,7 @@ def save_capture_pos():
         print(f"[F7] 감지 실패 → 기본값 사용")
 
     save_config()
-    img = grab_pil(region=capture_region)
-    img.save(os.path.join(TEMPLATE_DIR, "number.png"))
-    print(f"[F7 완료] 저장: images/number.png  크기={capture_region[2]}x{capture_region[3]}\n")
+    print(f"[F7 완료] 위치 저장 완료: {capture_region[2]}x{capture_region[3]} at ({capture_region[0]},{capture_region[1]})\n")
 
 
 # ── 메인 실행 ────────────────────────────────────────────
