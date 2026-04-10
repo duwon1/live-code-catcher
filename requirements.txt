@@ -1,0 +1,8 @@
+pyautogui
+ddddocr
+keyboard
+Pillow
+pyperclip
+pynput
+opencv-python
+numpy
