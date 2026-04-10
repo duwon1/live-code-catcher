@@ -9,8 +9,15 @@
 
 ## 설치
 
+### 방법 1 — EXE 직접 실행 (Python 불필요)
+
+[Releases](../../releases) 페이지에서 `live-code-catcher.exe`를 다운로드해 실행하세요.
+
+### 방법 2 — Python으로 실행
+
 ```bash
 pip install -r requirements.txt
+python auto_number.py
 ```
 
 ---
