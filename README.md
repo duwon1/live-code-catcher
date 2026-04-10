@@ -34,6 +34,8 @@ pip install -r requirements.txt
 - `F3` — 게임 코드 입력창이 열린 상태에서 눌러 탐색 확인
 - `F4` — 참가하기 버튼이 보이는 상태에서 눌러 탐색 확인
 
+탐색 성공 시 `debug/match_input.png`, `debug/match_join.png`에 매칭 위치가 표시된 이미지가 저장됩니다.
+
 ---
 
 ## 실전 사용
@@ -42,7 +44,8 @@ pip install -r requirements.txt
 python auto_number.py
 ```
 
-초대 코드가 뜨기 전에 **F9**를 눌러두면 코드가 감지되는 순간 자동으로 입력 → 참가 완료 후 프로그램이 종료됩니다.  
+초대 코드가 뜨기 전에 **F9**를 눌러두면 OCR·입력창·참가 버튼 탐색이 동시에 실행되어  
+코드가 감지되는 순간 자동으로 입력 → 참가 완료 후 프로그램이 종료됩니다.  
 `F9`를 다시 누르면 중지됩니다.
 
 ---
@@ -71,7 +74,9 @@ live-code-catcher/
 │   ├── input.png         # 코드 입력창 템플릿
 │   └── join.png          # 참가하기 버튼 템플릿
 └── debug/
-    └── raw.png           # 인식 테스트 캡처 확인용 (자동 생성)
+    ├── raw.png           # OCR 캡처 확인용 (자동 생성)
+    ├── match_input.png   # 입력창 탐색 위치 확인용 (자동 생성)
+    └── match_join.png    # 참가 버튼 탐색 위치 확인용 (자동 생성)
 ```
 
 ---
@@ -80,7 +85,8 @@ live-code-catcher/
 
 - 유튜브 창 크기를 바꾸면 **F7로 재등록** 필요
 - `images/input.png`, `images/join.png`는 본인 게임 UI에 맞게 교체 가능
-- 인식이 안 될 경우 `debug/raw.png`에서 캡처 영역 확인
+- 인식이 안 될 경우 `debug/raw.png`에서 OCR 캡처 영역 확인
+- 입력창/버튼 위치가 이상할 경우 `debug/match_input.png`, `debug/match_join.png` 확인
 
 ---
 

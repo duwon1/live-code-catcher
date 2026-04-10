@@ -30,11 +30,14 @@ CONFIG_FILE    = "config.json"
 TEMPLATE_INPUT = os.path.join("images", "input.png")
 TEMPLATE_JOIN  = os.path.join("images", "join.png")
 
-SCALES = [round(s, 2) for s in np.arange(0.5, 1.6, 0.1)]
+SCALES = [round(s, 2) for s in np.arange(0.5, 1.6, 0.2)]
 MATCH_THRESHOLD = 0.6
 
 # 초대 코드 고정 캡처 위치 (F7로 설정)
 capture_region = None  # (x, y, w, h)
+
+# 마지막 발견 좌표 캐시
+_cache = {}  # template_path → (x, y, w, h, scale)
 
 
 # ── 화면 캡처 ────────────────────────────────────────────
@@ -81,17 +84,19 @@ def find_on_screen(template_path: str, screen_gray: np.ndarray):
         return None
 
     tmpl_gray = cv2.cvtColor(tmpl_bgr, cv2.COLOR_BGR2GRAY)
-    th, tw = tmpl_gray.shape[:2]
+    tmpl_edge = cv2.Canny(tmpl_gray, 50, 150)
+    screen_edge = cv2.Canny(screen_gray, 50, 150)
+    th, tw = tmpl_edge.shape[:2]
     best_val, best_loc, best_scale = 0, None, 1.0
 
     for scale in SCALES:
         nw, nh = int(tw * scale), int(th * scale)
         if nw < 10 or nh < 10:
             continue
-        resized = cv2.resize(tmpl_gray, (nw, nh))
-        if resized.shape[0] > screen_gray.shape[0] or resized.shape[1] > screen_gray.shape[1]:
+        resized = cv2.resize(tmpl_edge, (nw, nh))
+        if resized.shape[0] > screen_edge.shape[0] or resized.shape[1] > screen_edge.shape[1]:
             continue
-        result = cv2.matchTemplate(screen_gray, resized, cv2.TM_CCOEFF_NORMED)
+        result = cv2.matchTemplate(screen_edge, resized, cv2.TM_CCOEFF_NORMED)
         _, max_val, _, max_loc = cv2.minMaxLoc(result)
         if max_val > best_val:
             best_val, best_loc, best_scale = max_val, max_loc, scale
@@ -99,7 +104,14 @@ def find_on_screen(template_path: str, screen_gray: np.ndarray):
     if best_val >= MATCH_THRESHOLD and best_loc:
         nw, nh = int(tw * best_scale), int(th * best_scale)
         x, y = best_loc
-        print(f"  [{os.path.basename(template_path)}] 발견 (신뢰도: {best_val:.2f})")
+        print(f"  [{os.path.basename(template_path)}] 발견 (신뢰도: {best_val:.2f}) → ({x+nw//2}, {y+nh//2})")
+        # 디버그: 전체 화면에 매칭 위치 표시
+        os.makedirs(DEBUG_DIR, exist_ok=True)
+        debug_img = cv2.cvtColor(screen_gray, cv2.COLOR_GRAY2BGR)
+        cv2.rectangle(debug_img, (x, y), (x+nw, y+nh), (0, 0, 255), 3)
+        cv2.circle(debug_img, (x+nw//2, y+nh//2), 8, (0, 255, 0), -1)
+        name = os.path.splitext(os.path.basename(template_path))[0]
+        cv2.imwrite(os.path.join(DEBUG_DIR, f"match_{name}.png"), debug_img)
         return (x, y, nw, nh, best_scale)
 
     print(f"  [{os.path.basename(template_path)}] 미발견 (신뢰도: {best_val:.2f})")
@@ -121,6 +133,12 @@ def ocr_number() -> str:
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     text = ocr.classification(buf.getvalue())
+    # 흔한 오인식 보정
+    text = text.replace('o', '0').replace('O', '0') \
+               .replace('l', '1').replace('I', '1') \
+               .replace('s', '5').replace('S', '5') \
+               .replace('g', '9').replace('q', '9') \
+               .replace('b', '6').replace('B', '8')
     digits = "".join(filter(str.isdigit, text))
     print(f"  [OCR] '{text}' → '{digits}'")
     return digits
@@ -187,52 +205,51 @@ def run_auto_loop():
 
     while _running:
         t0 = time.time()
-        number = ocr_number()
-        t1 = time.time()
-        print(f"  OCR: {t1-t0:.2f}s")
+        screen_gray = cv2.cvtColor(grab_screen(), cv2.COLOR_BGRA2GRAY)
+        number_result, inp_result, jn_result = [None], [None], [None]
 
+        def do_ocr():
+            number_result[0] = ocr_number()
+
+        def find_inp():
+            inp_result[0] = find_on_screen(TEMPLATE_INPUT, screen_gray)
+
+        def find_jn():
+            jn_result[0] = find_on_screen(TEMPLATE_JOIN, screen_gray)
+
+        t_ocr = threading.Thread(target=do_ocr)
+        t_inp = threading.Thread(target=find_inp)
+        t_jn  = threading.Thread(target=find_jn)
+        t_ocr.start(); t_inp.start(); t_jn.start()
+        t_ocr.join();  t_inp.join();  t_jn.join()
+        t1 = time.time()
+        print(f"  OCR+탐색: {t1-t0:.2f}s")
+
+        number = number_result[0]
         if not number or len(number) != 4:
             time.sleep(1)
             continue
 
-        # 정확도 검증: 한 번 더 읽어서 동일한지 확인
-        number2 = ocr_number()
-        if number != number2:
-            print(f"  [검증 실패] 1차:{number} / 2차:{number2} → 재시도\n")
+        if not inp_result[0]:
             time.sleep(1)
             continue
 
-        print(f"[인식된 숫자] {number} (검증 완료)")
-        pyperclip.copy(number)
-
-        screen_gray = cv2.cvtColor(grab_screen(), cv2.COLOR_BGRA2GRAY)
-        inp = find_on_screen(TEMPLATE_INPUT, screen_gray)
-        t2 = time.time()
-        print(f"  입력창 탐색: {t2-t1:.2f}s")
-
-        if not inp:
-            time.sleep(1)
-            continue
-
-        cx, cy = inp[0] + inp[2] // 2, inp[1] + inp[3] // 2
-        pyautogui.click(cx, cy)
-        time.sleep(0.1)
+        inp = inp_result[0]
+        pyautogui.click(inp[0] + inp[2]//2, inp[1] + inp[3]//2)
+        time.sleep(0.05)
+        print(f"[인식된 숫자] {number}")
         for digit in number:
             keyboard.press_and_release(digit)
         pyautogui.press("enter")
-        t3 = time.time()
-        print(f"  숫자 입력: {t3-t2:.2f}s")
-        time.sleep(0.1)
+        t2 = time.time()
+        print(f"  입력: {t2-t1:.2f}s")
 
-        screen_gray2 = cv2.cvtColor(grab_screen(), cv2.COLOR_BGRA2GRAY)
-        jn = find_on_screen(TEMPLATE_JOIN, screen_gray2)
-        t4 = time.time()
-        print(f"  참가 버튼 탐색: {t4-t3:.2f}s")
-
-        if jn:
+        if jn_result[0]:
+            jn = jn_result[0]
             pyautogui.click(jn[0] + jn[2] // 2, jn[1] + jn[3] // 2)
 
-        print(f"[완료] '{number}' 총 {t4-t0:.2f}s / 프로그램 종료\n")
+        t4 = time.time()
+        print(f"[완료] '{number}' 총 {t4-t0:.2f}s / 종료\n")
         os._exit(0)
 
     print("[중지] 자동 대기 종료\n")
