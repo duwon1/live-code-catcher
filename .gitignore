@@ -1,0 +1,23 @@
+# 가상환경
+.venv/
+venv/
+env/
+
+# 설정 파일 (개인 위치 정보 포함)
+config.json
+
+# 디버그 캡처
+debug/
+
+# F7로 자동 생성되는 미리보기
+images/number.png
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.idea/
+*.iml
+.vscode/
